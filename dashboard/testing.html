@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ESP32 Dashboard</title>
+</head>
+<body>
+  <h1>ESP32 Dashboard</h1>
+
+  <div class="card">
+    <h2>Door Control</h2>
+    <button onclick="open_door()">open_door</button>
+    <button onclick="close_door()">close_door</button>
+  </div>
+
+  <div class="card">
+    <h2>Lamp Control</h2>
+    <button onclick="turn_on_lamp()">turn_on_lamp</button>
+    <button onclick="turn_off_lamp()">turn_off_lamp</button>
+  </div>
+
+  <div class="card">
+    <h2>Prise Control</h2>
+    <button onclick="turn_on_pris()">turn_on_pris</button>
+    <button onclick="turn_off_pris()">turn_off_pris</button>
+  </div>
+
+  <div class="card">
+    <h2>Sensor Value</h2>
+    <p id="sensorValue">Waiting for data...</p>
+  </div>
+
+  <script>
+    var gateway = `ws://192.168.1.25/ws`;
+    var websocket;
+
+    window.addEventListener('load', onLoad);
+
+    function initWebSocket() {
+      console.log('Trying to open a WebSocket connection...');
+      websocket = new WebSocket(gateway);
+      websocket.onopen    = onOpen;
+      websocket.onclose   = onClose;
+      websocket.onmessage = onMessage;
+    }
+
+    function onOpen(event) {
+      console.log('Connection opened');
+    }
+
+    function onClose(event) {
+      console.log('Connection closed');
+      setTimeout(initWebSocket, 2000);
+    }
+
+    function onMessage(event) {
+      console.log('Received:', event.data);
+      document.getElementById('sensorValue').textContent = event.data;
+    }
+
+    function onLoad(event) {
+      initWebSocket();
+    }
+
+    function open_door() {
+      console.log('Opening door');
+      websocket.send('open_door');
+    }
+
+    function close_door() {
+      console.log('Closing door');
+      websocket.send('close_door');
+    }
+
+    function turn_on_lamp() {
+      console.log('Turning on lamp');
+      websocket.send('turn_on_lamp');
+    }
+
+    function turn_off_lamp() {
+      console.log('Turning off lamp');
+      websocket.send('turn_off_lamp');
+    }
+
+    function turn_on_pris() {
+      console.log('Turning on prise');
+      websocket.send('turn_on_pris');
+    }
+
+    function turn_off_pris() {
+      console.log('Turning off prise');
+      websocket.send('turn_off_pris');
+    }
+  </script>
+</body>
+</html>
