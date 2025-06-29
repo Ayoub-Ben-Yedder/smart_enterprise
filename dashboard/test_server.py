@@ -134,9 +134,11 @@ class SmartEnterpriseServer:
                     access_granted = True
                 else:
                     logger.warning("Unknown face detected - access denied")
+                    self._send_command('close_door')
             else:
                 logger.info("No faces detected in image")
-
+                self._send_command('close_door')
+            
             # Save to database
             self._save_photo_record(filename, recognized_names)
 
