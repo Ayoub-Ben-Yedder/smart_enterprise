@@ -1,8 +1,45 @@
 from flask import Flask, request, render_template, send_from_directory
 import sqlite3
 import os
+import websocket
+import threading
+from vision import FaceRecognizer  
+
+# Initialize face recognizer
+face_recognizer = FaceRecognizer()
+face_recognizer.load_known_faces("./known_faces")
+
 
 app = Flask(__name__)
+
+# WebSocket connection to ESP32
+ws_connection = None
+
+def connect_to_esp32():
+    global ws_connection
+    try:
+        ws_connection = websocket.WebSocket()
+        ws_connection.connect("ws://192.168.1.28/ws")
+        print("Connected to ESP32 WebSocket")
+    except Exception as e:
+        print(f"Failed to connect to ESP32: {e}")
+        ws_connection = None
+
+def send_command(command):
+    global ws_connection
+    try:
+        if ws_connection is None:
+            connect_to_esp32()
+        
+        if ws_connection:
+            ws_connection.send(command)
+            print(f"Sent command: {command}")
+    except Exception as e:
+        print(f"Error sending command: {e}")
+        ws_connection = None
+
+# Initialize WebSocket connection on startup
+connect_to_esp32()
 
 @app.route('/')
 def index():
@@ -39,6 +76,20 @@ def upload():
         # Extract just the filename without path
         filename = os.path.basename(file.filename)
         file.save(f"./uploads/{filename}")
+
+        # Recognize faces in the uploaded image
+        print(f"Processing file: {filename}")
+        names = face_recognizer.recognize_faces_in_image(f"./uploads/{filename}")
+        
+        if len(names)!=0:
+            if "Unknown" in names:
+                print("Face not recognized or access denied")
+            else:
+                print(f"Face recognized: {names[0]}")
+                send_command('open_door')
+        else:
+            print("No faces found in the image")
+    
 
         # connect to SQLite database
         conn = sqlite3.connect('photos.db')

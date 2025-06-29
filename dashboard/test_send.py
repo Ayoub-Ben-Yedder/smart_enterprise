@@ -1,7 +1,7 @@
 import requests
 
 url = "http://localhost:5000/upload"
-file_path = "testImgs/test1.JPG"
+file_path = "test_face1.JPG"
 # Open the image in binary mode
 with open(file_path, "rb") as img:
     # Send only the filename, not the full path
