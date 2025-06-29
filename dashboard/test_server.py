@@ -105,6 +105,15 @@ class SmartEnterpriseServer:
         @self.app.route('/upload', methods=['POST'])
         def upload():
             return self._handle_upload()
+        
+        @self.app.route('/api/status')
+        def api_status():
+            """API endpoint to check server status."""
+            return jsonify({
+                "status": "running",
+                "esp32_connected": self.ws_connection is not None,
+                "known_faces_loaded": len(self.face_recognizer.known_face_names)
+            })
     
     def _handle_upload(self):
         """Handle file upload and face recognition."""
@@ -168,11 +177,12 @@ class SmartEnterpriseServer:
         except Exception as e:
             logger.error(f"Error saving photo record: {e}")
     
-    def run(self, debug=True):
+    def run(self, host='0.0.0.0', port=5000, debug=True):
         """Run the Flask application."""
-        self.app.run(debug=debug)
+        logger.info(f"Starting server on {host}:{port}")
+        self.app.run(host=host, port=port, debug=debug)
 
 # Create and run the server
 if __name__ == '__main__':
     server = SmartEnterpriseServer()
-    server.run(debug=True)
+    server.run(host='0.0.0.0', port=5000, debug=True)
