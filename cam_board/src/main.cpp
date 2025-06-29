@@ -2,46 +2,20 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
-
-//
-// WARNING!!! PSRAM IC required for UXGA resolution and high JPEG quality
-//            Ensure ESP32 Wrover Module or other board with PSRAM is selected
-//            Partial images will be transmitted if image exceeds buffer size
-//
-
-// Select camera model
-//#define CAMERA_MODEL_WROVER_KIT // Has PSRAM
-//#define CAMERA_MODEL_ESP_EYE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_PSRAM // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_V2_PSRAM // M5Camera version B Has PSRAM
-//#define CAMERA_MODEL_M5STACK_WIDE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_ESP32CAM // No PSRAM
-#define CAMERA_MODEL_AI_THINKER // Has PSRAM
-//#define CAMERA_MODEL_TTGO_T_JOURNAL // No PSRAM
-
 #include "camera_pins.h"
 
-#define FLASH_GPIO_NUM 4
-
+// Wifi credentials
 const char* ssid = "TOPNET_VSKC";
 const char* password = "a47qhmlwxy";
 
-// Add target server configuration
-const char* serverURL = "http://192.168.1.17:5000/upload"; // Change to your target IP and route
-const unsigned long sendInterval = 5000; // Send image every 5 seconds
+// Server configuration
+const char* serverURL = "http://192.168.1.17:5000/upload"; 
+const unsigned long sendInterval = 10000; // Send image every 10 seconds
 unsigned long lastSendTime = 0;
 
-void startCameraServer();
-bool sendImageToServer();
+camera_config_t config;
 
-void setup() {
-  pinMode(FLASH_GPIO_NUM, OUTPUT);
-  digitalWrite(FLASH_GPIO_NUM, LOW); // Ensure flash is off initially
-  Serial.begin(115200);
-  Serial.setDebugOutput(true);
-  Serial.println();
-
-  camera_config_t config;
+void camera_configurations(){
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
   config.pin_d0 = Y2_GPIO_NUM;
@@ -74,65 +48,6 @@ void setup() {
     config.jpeg_quality = 12;
     config.fb_count = 1;
   }
-
-#if defined(CAMERA_MODEL_ESP_EYE)
-  pinMode(13, INPUT_PULLUP);
-  pinMode(14, INPUT_PULLUP);
-#endif
-
-  // camera init
-  esp_err_t err = esp_camera_init(&config);
-  if (err != ESP_OK) {
-    Serial.printf("Camera init failed with error 0x%x", err);
-    return;
-  }
-
-  sensor_t * s = esp_camera_sensor_get();
-  // initial sensors are flipped vertically and colors are a bit saturated
-  if (s->id.PID == OV3660_PID) {
-    s->set_vflip(s, 1); // flip it back
-    s->set_brightness(s, 1); // up the brightness just a bit
-    s->set_saturation(s, -2); // lower the saturation
-  }
-  // drop down frame size for higher initial frame rate
-  s->set_framesize(s, FRAMESIZE_QVGA);
-
-#if defined(CAMERA_MODEL_M5STACK_WIDE) || defined(CAMERA_MODEL_M5STACK_ESP32CAM)
-  s->set_vflip(s, 1);
-  s->set_hmirror(s, 1);
-#endif
-
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.println("WiFi connected");
-
-  startCameraServer();
-
-  Serial.print("Camera Ready! Use 'http://");
-  Serial.print(WiFi.localIP());
-  Serial.println("' to connect");
-  
-  Serial.print("Will send images to: ");
-  Serial.println(serverURL);
-}
-
-void loop() {
-  // Check if it's time to send an image
-  if (millis() - lastSendTime > sendInterval) {
-    if (sendImageToServer()) {
-      Serial.println("Image sent successfully");
-    } else {
-      Serial.println("Failed to send image");
-    }
-    lastSendTime = millis();
-  }
-  
-  delay(100);
 }
 
 bool sendImageToServer() {
@@ -143,7 +58,8 @@ bool sendImageToServer() {
   if (!fb) {
     Serial.println("Camera capture failed");
     return false;
-  }
+  } 
+  digitalWrite(FLASH_GPIO_NUM, LOW); // Turn off flash
 
   WiFiClient client;
   HTTPClient http;
@@ -212,6 +128,56 @@ bool sendImageToServer() {
   free(formData);
   http.end();
   esp_camera_fb_return(fb);
-  digitalWrite(FLASH_GPIO_NUM, LOW); // Turn off flash
   return success;
 }
+
+void setup() {
+  pinMode(FLASH_GPIO_NUM, OUTPUT);
+  digitalWrite(FLASH_GPIO_NUM, LOW); // Ensure flash is off initially
+  Serial.begin(115200);
+  Serial.setDebugOutput(true);
+  Serial.println();
+
+  camera_configurations();
+
+  // camera init
+  esp_err_t err = esp_camera_init(&config);
+  if (err != ESP_OK) {
+    Serial.printf("Camera init failed with error 0x%x", err);
+    return;
+  }
+
+  sensor_t * s = esp_camera_sensor_get();
+
+  s->set_framesize(s, FRAMESIZE_QVGA);
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  
+  Serial.print("Will send images to: ");
+  Serial.println(serverURL);
+}
+
+void loop() {
+  // Check if it's time to send an image
+  if (millis() - lastSendTime > sendInterval) {
+    if (sendImageToServer()) {
+      Serial.println("Image sent successfully");
+    } else {
+      Serial.println("Failed to send image");
+    }
+    lastSendTime = millis();
+  }
+  
+  delay(100);
+}
+
+
