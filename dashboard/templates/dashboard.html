@@ -73,9 +73,14 @@
       </div>
 
       <div class="card">
-        <h2>Sensor Data</h2>
-        <div id="sensorValue">Waiting for data...</div>
+        <h2>PIR sensor</h2>
+        <div id="pir">Waiting for data...</div>
+      </div>
+
+      <div class="card">
+        <h2>Connection Status</h2>
         <div id="connectionStatus" class="status disconnected">Disconnected</div>
+        <button class="control-button" onclick="dashboard.initWebSocket()">Reconnect</button>
       </div>
 
       <div class="card">
@@ -126,11 +131,11 @@
         const data = event.data;
         
         if (data.startsWith('humidity:')) {
-          document.getElementById('humidity').textContent = data.replace('humidity:', '');
-        } else if (data.startsWith('temperature:')) {
-          document.getElementById('temperature').textContent = data.replace('temperature:', '');
-        } else {
-          document.getElementById('sensorValue').textContent = data;
+          document.getElementById('humidity').textContent = data.replace('humidity:', '') + " %";
+        } else if (data.startsWith('temp:')) {
+          document.getElementById('temperature').textContent = data.replace('temp:', '') + " °C";
+        } else if (data.startsWith('pir:')) {
+          document.getElementById('pir').textContent = data.replace('pir:', '') == '1' ? 'Motion Detected' : 'No Motion Detected';
         }
       }
 

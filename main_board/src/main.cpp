@@ -17,8 +17,8 @@ void setup()
   // Setup WebSocket server
   setupWebSocket();
   
-  // Initialize sensor
-  setupSensor(DHT11_PIN);
+  // Initialize sensors
+  setupDHT11(DHT11_PIN);
   setupSensor(PIR_PIN);
 
   // Initialize actuators
@@ -32,8 +32,17 @@ void setup()
 void loop()
 {
   if ((millis() - lastTime) > timerDelay) {
-    send_msg(String(readSensor(DHT11_PIN)));
-    //send_msg(String(readSensor(PIR_PIN)));
+    float temp = readDHT11Temperature(DHT11_PIN);
+    float humidity = readDHT11Humidity(DHT11_PIN);
+    int pirValue = readPIRSensor(PIR_PIN);
+    
+    String sensorTemp = "temp:" + String(temp);
+    String sensorHumd = "humidity:" + String(humidity);
+    String sensorPIR = "pir:" + String(pirValue);
+    send_msg(sensorTemp);
+    send_msg(sensorHumd);
+    send_msg(sensorPIR);
+    
     lastTime = millis();
   }
   websocketCleanup();

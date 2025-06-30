@@ -6,8 +6,8 @@
 #define ENTREPRISE_PASSWORD "a47qhmlwxy"
 
 // Sensor pins
-#define DHT11_PIN 34
-#define PIR_PIN 35
+#define DHT11_PIN 33
+#define PIR_PIN 32
 
 // Actuator pins
 #define RELAI_DOOR 5
