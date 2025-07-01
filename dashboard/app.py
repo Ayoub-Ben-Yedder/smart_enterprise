@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 ESP32_WEBSOCKET_URL = "ws://192.168.1.28/ws"
-UPLOAD_FOLDER = './uploads'
-KNOWN_FACES_FOLDER = './known_faces'
-DATABASE_FILE = 'photos.db'
+UPLOAD_FOLDER = './accessHistory'
+KNOWN_FACES_FOLDER = './employees'
+DATABASE_FILE = 'entreprise.db'
 
 class SmartEnterpriseServer:
     def __init__(self):
@@ -24,7 +24,7 @@ class SmartEnterpriseServer:
         self._setup_database()
         self._load_known_faces()
         self._setup_routes()
-        self._connect_to_esp32()
+        #self._connect_to_esp32()
     
     def _setup_directories(self):
         """Create necessary directories."""
@@ -84,19 +84,25 @@ class SmartEnterpriseServer:
         @self.app.route('/')
         def index():
             return render_template('dashboard.html')
+        @self.app.route('/addEmployee')
+        def addEmployee():
+            return render_template('addEmployee.html')
+        @self.app.route('/surveillance')
+        def surveillance():
+            return render_template('surveillance.html')
 
-        @self.app.route('/gallery')
-        def gallery():
+        @self.app.route('/accessHistory')
+        def accessHistory():
             try:
                 conn = sqlite3.connect(DATABASE_FILE)
                 cursor = conn.cursor()
                 cursor.execute('SELECT * FROM photos ORDER BY id DESC')
                 photos = cursor.fetchall()
                 conn.close()
-                return render_template('gallery.html', photos=photos)
+                return render_template('accessHistory.html', photos=photos)
             except Exception as e:
                 logger.error(f"Error loading gallery: {e}")
-                return render_template('gallery.html', photos=[])
+                return render_template('accessHistory.html', photos=[])
 
         @self.app.route('/uploads/<filename>')
         def uploaded_file(filename):

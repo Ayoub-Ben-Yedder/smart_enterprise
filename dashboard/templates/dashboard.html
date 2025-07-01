@@ -1,132 +1,142 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Enterprise Dashboard</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .control-button {
-      width: 100%;
-      padding: 12px;
-      margin: 5px 0;
-      background-color: #28a745;
-      font-size: 16px;
-    }
-    
-    .control-button:hover {
-      background-color: #218838;
-    }
-    
-    .off-button {
-      background-color: #dc3545;
-    }
-    
-    .off-button:hover {
-      background-color: #c82333;
-    }
-    
-    #sensorValue, #temperature, #humidity {
-      font-size: 24px;
-      font-weight: bold;
-      text-align: center;
-      color: #007bff;
-      padding: 20px;
-      background-color: #f8f9fa;
-      border-radius: 4px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Smart Enterprise Dashboard</h1>
-    
-    <div class="navigation">
-      <a href="/" class="nav-button">Dashboard</a>
-      <a href="/gallery" class="nav-button">Photo Gallery</a>
-    </div>
-    
-    <div class="dashboard-grid">
-      <div class="card">
-        <h2>Door Control</h2>
-        <button class="control-button" onclick="sendCommand('open_door')">Open Door</button>
-        <button class="control-button off-button" onclick="sendCommand('close_door')">Close Door</button>
+{% extends "base.html" %}
+{% block title %}Dashboard - Smart Enterprise{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+  {% block content %}
+  <div class="container mx-auto p-6 max-w-7xl">
+    <!-- Dashboard Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <!-- Door Control Card -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm">
+        <div class="p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+            </svg>
+            <h3 class="text-lg font-semibold">Door Control</h3>
+          </div>
+          <div class="space-y-2">
+            <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 hover:bg-green-700 text-white h-10 px-4 py-2 w-full" onclick="sendCommand('open_door')">
+              Open Door
+            </button>
+            <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 hover:bg-red-700 text-white h-10 px-4 py-2 w-full" onclick="sendCommand('close_door')">
+              Close Door
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div class="card">
-        <h2>Lamp Control</h2>
-        <button class="control-button" onclick="sendCommand('turn_on_lamp')">Turn On Lamp</button>
-        <button class="control-button off-button" onclick="sendCommand('turn_off_lamp')">Turn Off Lamp</button>
+      <!-- Lamp Control Card -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm">
+        <div class="p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            <h3 class="text-lg font-semibold">Lamp Control</h3>
+          </div>
+          <div class="space-y-2">
+            <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 hover:bg-green-700 text-white h-10 px-4 py-2 w-full" onclick="sendCommand('turn_on_lamp')">
+              Turn On Lamp
+            </button>
+            <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 hover:bg-red-700 text-white h-10 px-4 py-2 w-full" onclick="sendCommand('turn_off_lamp')">
+              Turn Off Lamp
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div class="card">
-        <h2>Outlet Control</h2>
-        <button class="control-button" onclick="sendCommand('turn_on_pris')">Turn On Outlet</button>
-        <button class="control-button off-button" onclick="sendCommand('turn_off_pris')">Turn Off Outlet</button>
+      <!-- Outlet Control Card -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm">
+        <div class="p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <h3 class="text-lg font-semibold">Outlet Control</h3>
+          </div>
+          <div class="space-y-2">
+            <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 hover:bg-green-700 text-white h-10 px-4 py-2 w-full" onclick="sendCommand('turn_on_pris')">
+              Turn On Outlet
+            </button>
+            <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none disabled:opacity-50 bg-red-600 hover:bg-red-700 text-white h-10 px-4 py-2 w-full" onclick="sendCommand('turn_off_pris')">
+              Turn Off Outlet
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div class="card">
-        <h2>PIR sensor</h2>
-        <div id="pir">Waiting for data...</div>
+      <!-- PIR Sensor Card -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm">
+        <div class="p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            <h3 class="text-lg font-semibold">PIR Sensor</h3>
+          </div>
+          <div id="pir" class="text-2xl font-mono text-gray-500 dark:text-gray-400">Waiting for data...</div>
+        </div>
       </div>
 
-      <div class="card">
-        <h2>Connection Status</h2>
-        <div id="connectionStatus" class="status disconnected">Disconnected</div>
-        <button class="control-button" onclick="dashboard.initWebSocket()">Reconnect</button>
-      </div>
-
-      <div class="card">
-        <h2>Temperature</h2>
-        <div id="temperature">Waiting for data...</div>
+      <!-- Temperature Card -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm">
+        <div class="p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <h3 class="text-lg font-semibold">Temperature</h3>
+          </div>
+          <div id="temperature" class="text-2xl font-mono text-gray-500 dark:text-gray-400">Waiting for data...</div>
+        </div>
       </div>
       
-      <div class="card">
-        <h2>Humidity</h2>
-        <div id="humidity">Waiting for data...</div>
+      <!-- Humidity Card -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm">
+        <div class="p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+            </svg>
+            <h3 class="text-lg font-semibold">Humidity</h3>
+          </div>
+          <div id="humidity" class="text-2xl font-mono text-gray-500 dark:text-gray-400">Waiting for data...</div>
+        </div>
       </div>
     </div>
   </div>
+  {% endblock %}
 
+  {% block scripts %}
   <script>
-    class DashboardController {
-      constructor() {
-        this.gateway = 'ws://192.168.1.28/ws';
-        this.websocket = null;
-        this.init();
-      }
+    // Dashboard-specific functionality
+    const dashboard = {
+      gateway: 'ws://192.168.1.28/ws',
+      websocket: null,
 
-      init() {
-        this.initWebSocket();
-      }
+      
 
-      initWebSocket() {
+      initWebSocket: function() {
         console.log('Trying to open a WebSocket connection...');
         this.websocket = new WebSocket(this.gateway);
         this.websocket.onopen = (event) => this.onOpen(event);
         this.websocket.onclose = (event) => this.onClose(event);
         this.websocket.onmessage = (event) => this.onMessage(event);
-      }
+      },
 
-      onOpen(event) {
+      onOpen: function(event) {
         console.log('Connection opened');
-        this.updateConnectionStatus('Connected', 'connected');
-      }
+        this.updateConnectionStatus(true);
+      },
 
-      onClose(event) {
+      onClose: function(event) {
         console.log('Connection closed');
-        this.updateConnectionStatus('Disconnected', 'disconnected');
+        this.updateConnectionStatus(false);
         setTimeout(() => this.initWebSocket(), 2000);
-      }
+      },
 
-      onMessage(event) {
+      onMessage: function(event) {
         console.log('Received:', event.data);
         const data = event.data;
         
@@ -137,15 +147,20 @@
         } else if (data.startsWith('pir:')) {
           document.getElementById('pir').textContent = data.replace('pir:', '') == '1' ? 'Motion Detected' : 'No Motion Detected';
         }
-      }
+      },
 
-      updateConnectionStatus(text, className) {
+      updateConnectionStatus: function(isConnected) {
         const statusElement = document.getElementById('connectionStatus');
-        statusElement.textContent = text;
-        statusElement.className = `status ${className}`;
-      }
+        if (isConnected) {
+          statusElement.className = 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-green-200 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-900 dark:text-green-200';
+          statusElement.textContent = 'Connected';
+        } else {
+          statusElement.className = 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-red-200 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900 dark:text-red-200';
+          statusElement.textContent = 'Disconnected';
+        }
+      },
 
-      sendCommand(command) {
+      sendCommand: function(command) {
         if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
           console.log(`Sending command: ${command}`);
           this.websocket.send(command);
@@ -153,20 +168,24 @@
           console.log('WebSocket not connected');
         }
       }
-    }
+    };
 
-    // Global instance and functions for backward compatibility
-    let dashboard;
-    
-    window.addEventListener('load', () => {
-      dashboard = new DashboardController();
-    });
-
+    // Command sending function for backward compatibility
     function sendCommand(command) {
-      if (dashboard) {
-        dashboard.sendCommand(command);
+      dashboard.sendCommand(command);
+      
+      // Add visual feedback
+      if (event && event.target) {
+        event.target.classList.add('opacity-50');
+        setTimeout(() => {
+          event.target.classList.remove('opacity-50');
+        }, 200);
       }
     }
+
+    // Initialize dashboard on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      dashboard.init();
+    });
   </script>
-</body>
-</html>
+  {% endblock %}

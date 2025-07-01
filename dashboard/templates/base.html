@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Smart Enterprise{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ url_for('static', filename='tailwindConfig.js') }}"></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+  <div class="container mx-auto p-6 max-w-7xl">
+    <!-- Header -->
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-2">
+          {% block page_title %}Smart Enterprise{% endblock %}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400">
+          {% block page_description %}Monitor and control your smart devices{% endblock %}
+        </p>
+      </div>
+      <div class="flex items-center space-x-4">
+        {% block header_extra %}{% endblock %}
+        <!-- Theme Toggle Button -->
+        <button 
+          id="themeToggle" 
+          onclick="app.toggleTheme()" 
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 h-10 w-10"
+          title="Toggle theme"
+        >
+          <svg id="sunIcon" class="w-4 h-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg id="moonIcon" class="absolute w-4 h-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Navigation -->
+    <div class="mb-8">
+      <nav class="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
+        <a href="/" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 {% if request.endpoint == 'dashboard' %}bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+          Dashboard
+        </a>
+        <a href="/accessHistory" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 {% if request.endpoint == 'gallery' %}bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+          Access History
+        </a>
+        <a href="/addEmployee" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 {% if request.endpoint == 'gallery' %}bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+          Add Employee
+        </a>
+        <a href="/surveillance" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 {% if request.endpoint == 'gallery' %}bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+          Surveillance
+        </a>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Base JavaScript -->
+  <script>
+    // Base app functionality
+    const app = {
+      init: function() {
+        // Initialize theme from localStorage or default to light
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        this.setTheme(savedTheme);
+        
+        // Initialize page-specific functionality
+        if (typeof this.pageInit === 'function') {
+          this.pageInit();
+        }
+      },
+
+      toggleTheme: function() {
+        const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        this.setTheme(newTheme);
+      },
+
+      setTheme: function(theme) {
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        localStorage.setItem('theme', theme);
+      }
+    };
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      app.init();
+    });
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
