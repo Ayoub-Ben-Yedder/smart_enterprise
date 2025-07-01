@@ -112,13 +112,12 @@
   <script>
     // Dashboard-specific functionality
     const dashboard = {
-      gateway: 'ws://192.168.1.28/ws',
+      gateway: "{{ websocket_url }}",
       websocket: null,
-
-      
 
       initWebSocket: function() {
         console.log('Trying to open a WebSocket connection...');
+        console.log('WebSocket URL:', this.gateway);
         this.websocket = new WebSocket(this.gateway);
         this.websocket.onopen = (event) => this.onOpen(event);
         this.websocket.onclose = (event) => this.onClose(event);
@@ -185,7 +184,7 @@
 
     // Initialize dashboard on page load
     document.addEventListener('DOMContentLoaded', function() {
-      dashboard.init();
+      dashboard.initWebSocket();
     });
   </script>
   {% endblock %}

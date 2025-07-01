@@ -83,7 +83,7 @@ class SmartEnterpriseServer:
         """Setup Flask routes."""
         @self.app.route('/')
         def index():
-            return render_template('dashboard.html')
+            return render_template('dashboard.html', websocket_url=ESP32_WEBSOCKET_URL)
         @self.app.route('/addEmployee')
         def addEmployee():
             return render_template('addEmployee.html')
@@ -101,7 +101,7 @@ class SmartEnterpriseServer:
                 conn.close()
                 return render_template('accessHistory.html', photos=photos)
             except Exception as e:
-                logger.error(f"Error loading gallery: {e}")
+                logger.error(f"Error loading access history: {e}")
                 return render_template('accessHistory.html', photos=[])
 
         @self.app.route('/uploads/<filename>')
