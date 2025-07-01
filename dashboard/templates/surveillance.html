@@ -1,11 +1,178 @@
+{% extends "base.html" %}
 
-    {% extends "base.html" %}
+{% block title %}Surveillance - Smart Enterprise{% endblock %}
 
-    {% block title %}Surveillance  - Smart Enterprise{% endblock %}
+{% block page_title %}Surveillance{% endblock %}
+{% block page_description %}View live camera footage{% endblock %}
 
-    {% block page_title %}Surveillance{% endblock %}
-    {% block page_description %}View live camera footage{% endblock %}
+{% block content %}
+<!-- Camera Management Section -->
+<div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm mb-8">
+  <div class="p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center space-x-2">
+        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+        <h3 class="text-lg font-semibold">Camera Management</h3>
+      </div>
+      <button onclick="surveillance.showAddCameraModal()" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 h-10 px-4 py-2">
+        Add Camera
+      </button>
+    </div>
+  </div>
+</div>
 
-    {% block content %}
+<!-- Camera Grid -->
+{% if cameras %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+  {% for camera in cameras %}
+  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm overflow-hidden">
+    <div class="relative">
+      <img 
+        src="http://{{ camera[2] }}:{{ camera[3] }}{{ camera[4] }}" 
+        alt="{{ camera[1] }}"
+        class="w-full h-48 object-cover bg-gray-100 dark:bg-gray-700"
+        onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23f3f4f6%22/%3E%3Ctext x=%2250%22 y=%2250%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%236b7280%22%3ECamera Offline%3C/text%3E%3C/svg%3E'"
+      >
+      <div class="absolute top-2 right-2">
+        <button onclick="surveillance.deleteCamera({{ camera[0] }})" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 hover:bg-red-700 text-white h-8 w-8">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="p-4">
+      <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-1">{{ camera[1] }}</h4>
+      <p class="text-sm text-gray-500 dark:text-gray-400">{{ camera[2] }}:{{ camera[3] }}</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-12">
+  <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+  </svg>
+  <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No cameras configured</h3>
+  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add your first IP camera to start monitoring.</p>
+</div>
+{% endif %}
 
-    {% endblock %}
+<!-- Add Camera Modal -->
+<div id="addCameraModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Add New Camera</h3>
+    <form id="addCameraForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Camera Name</label>
+        <input type="text" name="name" required class="flex h-10 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm ring-offset-background placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">IP Address</label>
+        <input type="text" name="ip_address" required class="flex h-10 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm ring-offset-background placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="192.168.1.100">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Port</label>
+          <input type="number" name="port" value="8080" class="flex h-10 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm ring-offset-background placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stream Path</label>
+          <input type="text" name="stream_path" value="/stream" class="flex h-10 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm ring-offset-background placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username (optional)</label>
+          <input type="text" name="username" class="flex h-10 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm ring-offset-background placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password (optional)</label>
+          <input type="password" name="password" class="flex h-10 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm ring-offset-background placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+        </div>
+      </div>
+      <div class="flex justify-end space-x-2 pt-4">
+        <button type="button" onclick="surveillance.hideAddCameraModal()" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 h-10 px-4 py-2">
+          Cancel
+        </button>
+        <button type="submit" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 h-10 px-4 py-2">
+          Add Camera
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const surveillance = {
+  showAddCameraModal: function() {
+    document.getElementById('addCameraModal').classList.remove('hidden');
+  },
+
+  hideAddCameraModal: function() {
+    document.getElementById('addCameraModal').classList.add('hidden');
+    document.getElementById('addCameraForm').reset();
+  },
+
+  addCamera: async function(formData) {
+    try {
+      const response = await fetch('/api/cameras', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        this.hideAddCameraModal();
+        location.reload();
+      } else {
+        const error = await response.json();
+        alert('Error adding camera: ' + error.error);
+      }
+    } catch (error) {
+      alert('Error adding camera: ' + error.message);
+    }
+  },
+
+  deleteCamera: async function(cameraId) {
+    if (!confirm('Are you sure you want to delete this camera?')) return;
+
+    try {
+      const response = await fetch(`/api/cameras/${cameraId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        location.reload();
+      } else {
+        const error = await response.json();
+        alert('Error deleting camera: ' + error.error);
+      }
+    } catch (error) {
+      alert('Error deleting camera: ' + error.message);
+    }
+  }
+};
+
+// Handle form submission
+document.getElementById('addCameraForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  const data = Object.fromEntries(formData.entries());
+  surveillance.addCamera(data);
+});
+
+// Close modal when clicking outside
+document.getElementById('addCameraModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    surveillance.hideAddCameraModal();
+  }
+});
+</script>
+{% endblock %}

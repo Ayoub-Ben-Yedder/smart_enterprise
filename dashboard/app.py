@@ -44,6 +44,19 @@ class SmartEnterpriseServer:
                     recognized_faces TEXT
                 )
             ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS ip_cameras (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    ip_address TEXT NOT NULL,
+                    port INTEGER DEFAULT 8080,
+                    stream_path TEXT DEFAULT '/stream',
+                    username TEXT,
+                    password TEXT,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
             conn.commit()
             conn.close()
             logger.info("Database initialized successfully")
@@ -89,7 +102,16 @@ class SmartEnterpriseServer:
             return render_template('addEmployee.html')
         @self.app.route('/surveillance')
         def surveillance():
-            return render_template('surveillance.html')
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM ip_cameras WHERE is_active = 1 ORDER BY name')
+                cameras = cursor.fetchall()
+                conn.close()
+                return render_template('surveillance.html', cameras=cameras)
+            except Exception as e:
+                logger.error(f"Error loading cameras: {e}")
+                return render_template('surveillance.html', cameras=[])
 
         @self.app.route('/accessHistory')
         def accessHistory():
@@ -120,6 +142,54 @@ class SmartEnterpriseServer:
                 "esp32_connected": self.ws_connection is not None,
                 "known_faces_loaded": len(self.face_recognizer.known_face_names)
             })
+        
+        @self.app.route('/api/cameras', methods=['GET'])
+        def api_get_cameras():
+            """Get all cameras."""
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM ip_cameras ORDER BY name')
+                cameras = cursor.fetchall()
+                conn.close()
+                return jsonify([{
+                    "id": c[0], "name": c[1], "ip_address": c[2], "port": c[3],
+                    "stream_path": c[4], "username": c[5], "password": c[6], "is_active": c[7]
+                } for c in cameras])
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/cameras', methods=['POST'])
+        def api_add_camera():
+            """Add new camera."""
+            try:
+                data = request.get_json()
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO ip_cameras (name, ip_address, port, stream_path, username, password)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (data['name'], data['ip_address'], data.get('port', 8080),
+                      data.get('stream_path', '/stream'), data.get('username'),
+                      data.get('password')))
+                conn.commit()
+                conn.close()
+                return jsonify({"message": "Camera added successfully"}), 201
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/cameras/<int:camera_id>', methods=['DELETE'])
+        def api_delete_camera(camera_id):
+            """Delete camera."""
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('UPDATE ip_cameras SET is_active = 0 WHERE id = ?', (camera_id,))
+                conn.commit()
+                conn.close()
+                return jsonify({"message": "Camera deleted successfully"})
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
     
     def _handle_upload(self):
         """Handle file upload and face recognition."""
