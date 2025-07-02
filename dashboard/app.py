@@ -1,9 +1,11 @@
-from flask import Flask, request, render_template, send_from_directory, jsonify
+from flask import Flask, request, render_template, send_from_directory, jsonify, session, redirect, url_for
 import sqlite3
 import os
 import websocket
 import logging
 from vision import FaceRecognizer
+from functools import wraps
+import hashlib
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +20,7 @@ DATABASE_FILE = 'entreprise.db'
 class SmartEnterpriseServer:
     def __init__(self):
         self.app = Flask(__name__)
+        self.app.secret_key = 'your-secret-key-change-in-production'  # Change this in production!
         self.ws_connection = None
         self.face_recognizer = FaceRecognizer()
         self._setup_directories()
@@ -74,12 +77,31 @@ class SmartEnterpriseServer:
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # Create default admin user if no users exist
+            cursor.execute('SELECT COUNT(*) FROM users')
+            user_count = cursor.fetchone()[0]
+            if user_count == 0:
+                admin_password = self._hash_password('admin')
+                cursor.execute('''
+                    INSERT INTO users (username, password_hash) VALUES (?, ?)
+                ''', ('admin', admin_password))
+                logger.info("Created default admin user (username: admin, password: admin)")
+            
             conn.commit()
             conn.close()
             logger.info("Database initialized successfully")
         except Exception as e:
             logger.error(f"Error initializing database: {e}")
-    
     def _load_known_faces(self):
         """Load known faces for recognition."""
         self.face_recognizer.load_known_faces(KNOWN_FACES_FOLDER)
@@ -108,13 +130,79 @@ class SmartEnterpriseServer:
             logger.error(f"Error sending command: {e}")
             self.ws_connection = None
         return False
+    def _hash_password(self, password):
+        """Hash password using SHA-256."""
+        return hashlib.sha256(password.encode()).hexdigest()
+    
+    def _verify_password(self, password, password_hash):
+        """Verify password against hash."""
+        return self._hash_password(password) == password_hash
+    
+    def _login_required(self, f):
+        """Decorator to require login for routes."""
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_id' not in session:
+                if request.is_json:
+                    return jsonify({"error": "Authentication required"}), 401
+                return redirect(url_for('login'))
+            return f(*args, **kwargs)
+        return decorated_function
     
     def _setup_routes(self):
         """Setup Flask routes."""
+        @self.app.route('/login')
+        def login():
+            if 'user_id' in session:
+                return redirect(url_for('index'))
+            return render_template('login.html')
+        
+        @self.app.route('/api/login', methods=['POST'])
+        def api_login():
+            """Handle login requests."""
+            try:
+                data = request.get_json()
+                username = data.get('username')
+                password = data.get('password')
+                
+                if not username or not password:
+                    return jsonify({"error": "Username and password are required"}), 400
+                
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT id, username, password_hash FROM users 
+                    WHERE username = ? AND is_active = 1
+                ''', (username,))
+                user = cursor.fetchone()
+                conn.close()
+                
+                if user and self._verify_password(password, user[2]):
+                    session['user_id'] = user[0]
+                    session['username'] = user[1]
+                    logger.info(f"User {username} logged in successfully")
+                    return jsonify({"message": "Login successful"}), 200
+                else:
+                    logger.warning(f"Failed login attempt for username: {username}")
+                    return jsonify({"error": "Invalid username or password"}), 401
+                    
+            except Exception as e:
+                logger.error(f"Error during login: {e}")
+                return jsonify({"error": "Login failed"}), 500
+        
+        @self.app.route('/api/logout', methods=['POST'])
+        def api_logout():
+            """Handle logout requests."""
+            session.clear()
+            return jsonify({"message": "Logout successful"}), 200
+        
         @self.app.route('/')
+        @self._login_required
         def index():
             return render_template('dashboard.html', websocket_url=ESP32_WEBSOCKET_URL)
+        
         @self.app.route('/employees')
+        @self._login_required
         def employees():
             try:
                 conn = sqlite3.connect(DATABASE_FILE)
@@ -127,6 +215,7 @@ class SmartEnterpriseServer:
                 logger.error(f"Error loading employees: {e}")
                 return render_template('employees.html', employees=[])
         @self.app.route('/surveillance')
+        @self._login_required
         def surveillance():
             try:
                 conn = sqlite3.connect(DATABASE_FILE)
@@ -140,6 +229,7 @@ class SmartEnterpriseServer:
                 return render_template('surveillance.html', cameras=[])
 
         @self.app.route('/accessHistory')
+        @self._login_required
         def accessHistory():
             try:
                 conn = sqlite3.connect(DATABASE_FILE)
@@ -161,6 +251,7 @@ class SmartEnterpriseServer:
             return self._handle_upload()
         
         @self.app.route('/api/status')
+        @self._login_required
         def api_status():
             """API endpoint to check server status."""
             return jsonify({
@@ -170,6 +261,7 @@ class SmartEnterpriseServer:
             })
         
         @self.app.route('/api/cameras', methods=['GET'])
+        @self._login_required
         def api_get_cameras():
             """Get all cameras."""
             try:
@@ -186,6 +278,7 @@ class SmartEnterpriseServer:
                 return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/cameras', methods=['POST'])
+        @self._login_required
         def api_add_camera():
             """Add new camera."""
             try:
@@ -205,6 +298,7 @@ class SmartEnterpriseServer:
                 return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/cameras/<int:camera_id>', methods=['DELETE'])
+        @self._login_required
         def api_delete_camera(camera_id):
             """Delete camera."""
             try:
@@ -218,6 +312,7 @@ class SmartEnterpriseServer:
                 return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/employees', methods=['GET'])
+        @self._login_required
         def api_get_employees():
             """Get all employees."""
             try:
@@ -246,6 +341,7 @@ class SmartEnterpriseServer:
                 return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/employees', methods=['POST'])
+        @self._login_required
         def api_add_employee():
             """Add new employee with images."""
             try:
@@ -306,6 +402,7 @@ class SmartEnterpriseServer:
                 return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/employees/<int:employee_id>', methods=['DELETE'])
+        @self._login_required
         def api_delete_employee(employee_id):
             """Delete employee and their images."""
             try:
@@ -343,12 +440,14 @@ class SmartEnterpriseServer:
                 return jsonify({"error": str(e)}), 500
 
         @self.app.route('/employees/<employee_name>/<filename>')
+        @self._login_required
         def employee_image(employee_name, filename):
             """Serve employee images."""
             employee_dir = os.path.join(KNOWN_FACES_FOLDER, employee_name)
             return send_from_directory(employee_dir, filename)
         
         @self.app.route('/api/sensor-data', methods=['GET'])
+        @self._login_required
         def api_get_sensor_data():
             """Get recent sensor data for charts."""
             try:
@@ -377,6 +476,7 @@ class SmartEnterpriseServer:
                 return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/sensor-data', methods=['POST'])
+        @self._login_required
         def api_save_sensor_data():
             """Save sensor data."""
             try:
