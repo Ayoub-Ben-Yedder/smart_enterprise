@@ -57,6 +57,15 @@ class SmartEnterpriseServer:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS employees (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    national_id TEXT NOT NULL UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    is_active BOOLEAN DEFAULT 1
+                )
+            ''')
             conn.commit()
             conn.close()
             logger.info("Database initialized successfully")
@@ -97,9 +106,18 @@ class SmartEnterpriseServer:
         @self.app.route('/')
         def index():
             return render_template('dashboard.html', websocket_url=ESP32_WEBSOCKET_URL)
-        @self.app.route('/addEmployee')
-        def addEmployee():
-            return render_template('addEmployee.html')
+        @self.app.route('/employees')
+        def employees():
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM employees WHERE is_active = 1 ORDER BY name')
+                employees_data = cursor.fetchall()
+                conn.close()
+                return render_template('employees.html', employees=employees_data)
+            except Exception as e:
+                logger.error(f"Error loading employees: {e}")
+                return render_template('employees.html', employees=[])
         @self.app.route('/surveillance')
         def surveillance():
             try:
@@ -190,6 +208,137 @@ class SmartEnterpriseServer:
                 return jsonify({"message": "Camera deleted successfully"})
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/employees', methods=['GET'])
+        def api_get_employees():
+            """Get all employees."""
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM employees WHERE is_active = 1 ORDER BY name')
+                employees_data = cursor.fetchall()
+                conn.close()
+                
+                # Add image count for each employee
+                employees_list = []
+                for emp in employees_data:
+                    emp_dir = os.path.join(KNOWN_FACES_FOLDER, emp[1])  # emp[1] is name
+                    image_count = 0
+                    if os.path.exists(emp_dir):
+                        image_count = len([f for f in os.listdir(emp_dir) 
+                                         if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif'))])
+                    
+                    employees_list.append({
+                        "id": emp[0], "name": emp[1], "national_id": emp[2], 
+                        "created_at": emp[3], "is_active": emp[4], "image_count": image_count
+                    })
+                
+                return jsonify(employees_list)
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/employees', methods=['POST'])
+        def api_add_employee():
+            """Add new employee with images."""
+            try:
+                name = request.form.get('name')
+                national_id = request.form.get('national_id')
+                
+                if not name or not national_id:
+                    return jsonify({"error": "Name and National ID are required"}), 400
+                
+                # Check if employee already exists
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('SELECT id FROM employees WHERE national_id = ? AND is_active = 1', (national_id,))
+                if cursor.fetchone():
+                    conn.close()
+                    return jsonify({"error": "Employee with this National ID already exists"}), 400
+                
+                # Add employee to database
+                cursor.execute('''
+                    INSERT INTO employees (name, national_id) VALUES (?, ?)
+                ''', (name, national_id))
+                employee_id = cursor.lastrowid
+                conn.commit()
+                conn.close()
+                
+                # Create employee directory
+                employee_dir = os.path.join(KNOWN_FACES_FOLDER, name)
+                os.makedirs(employee_dir, exist_ok=True)
+                
+                # Save uploaded images
+                saved_images = []
+                for i in range(1, 4):  # image1, image2, image3
+                    image_key = f'image{i}'
+                    if image_key in request.files:
+                        file = request.files[image_key]
+                        if file and file.filename:
+                            # Generate safe filename
+                            ext = os.path.splitext(file.filename)[1].lower()
+                            if ext not in ['.jpg', '.jpeg', '.png', '.bmp', '.gif']:
+                                ext = '.jpg'
+                            filename = f"{name}_{i}{ext}"
+                            file_path = os.path.join(employee_dir, filename)
+                            file.save(file_path)
+                            saved_images.append(filename)
+                            logger.info(f"Saved image: {file_path}")
+                
+                # Reload known faces
+                self._load_known_faces()
+                
+                return jsonify({
+                    "message": "Employee added successfully",
+                    "employee_id": employee_id,
+                    "saved_images": saved_images
+                }), 201
+                
+            except Exception as e:
+                logger.error(f"Error adding employee: {e}")
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/employees/<int:employee_id>', methods=['DELETE'])
+        def api_delete_employee(employee_id):
+            """Delete employee and their images."""
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                
+                # Get employee info before deletion
+                cursor.execute('SELECT name FROM employees WHERE id = ?', (employee_id,))
+                employee = cursor.fetchone()
+                if not employee:
+                    conn.close()
+                    return jsonify({"error": "Employee not found"}), 404
+                
+                employee_name = employee[0]
+                
+                # Mark employee as inactive
+                cursor.execute('UPDATE employees SET is_active = 0 WHERE id = ?', (employee_id,))
+                conn.commit()
+                conn.close()
+                
+                # Remove employee directory and images
+                employee_dir = os.path.join(KNOWN_FACES_FOLDER, employee_name)
+                if os.path.exists(employee_dir):
+                    import shutil
+                    shutil.rmtree(employee_dir)
+                    logger.info(f"Removed employee directory: {employee_dir}")
+                
+                # Reload known faces
+                self._load_known_faces()
+                
+                return jsonify({"message": "Employee deleted successfully"})
+                
+            except Exception as e:
+                logger.error(f"Error deleting employee: {e}")
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/employees/<employee_name>/<filename>')
+        def employee_image(employee_name, filename):
+            """Serve employee images."""
+            employee_dir = os.path.join(KNOWN_FACES_FOLDER, employee_name)
+            return send_from_directory(employee_dir, filename)
     
     def _handle_upload(self):
         """Handle file upload and face recognition."""
