@@ -58,7 +58,7 @@
             <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 hover:bg-green-700 text-white h-10 px-4 py-2 w-full" onclick="sendCommand('turn_on_pris')">
               Turn On Outlet
             </button>
-            <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none disabled:opacity-50 bg-red-600 hover:bg-red-700 text-white h-10 px-4 py-2 w-full" onclick="sendCommand('turn_off_pris')">
+            <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 hover:bg-red-700 text-white h-10 px-4 py-2 w-full" onclick="sendCommand('turn_off_pris')">
               Turn Off Outlet
             </button>
           </div>
@@ -80,28 +80,38 @@
       </div>
 
       <!-- Temperature Card -->
-      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm">
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm col-span-1 md:col-span-2">
         <div class="p-6">
-          <div class="flex items-center space-x-2 mb-4">
-            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            <h3 class="text-lg font-semibold">Temperature</h3>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              <h3 class="text-lg font-semibold">Temperature</h3>
+            </div>
+            <div id="temperature" class="text-2xl font-mono text-gray-500 dark:text-gray-400">Waiting for data...</div>
           </div>
-          <div id="temperature" class="text-2xl font-mono text-gray-500 dark:text-gray-400">Waiting for data...</div>
+          <div class="h-48">
+            <canvas id="temperatureChart"></canvas>
+          </div>
         </div>
       </div>
       
       <!-- Humidity Card -->
-      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm">
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm col-span-1 md:col-span-2">
         <div class="p-6">
-          <div class="flex items-center space-x-2 mb-4">
-            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
-            </svg>
-            <h3 class="text-lg font-semibold">Humidity</h3>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+              </svg>
+              <h3 class="text-lg font-semibold">Humidity</h3>
+            </div>
+            <div id="humidity" class="text-2xl font-mono text-gray-500 dark:text-gray-400">Waiting for data...</div>
           </div>
-          <div id="humidity" class="text-2xl font-mono text-gray-500 dark:text-gray-400">Waiting for data...</div>
+          <div class="h-48">
+            <canvas id="humidityChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
@@ -114,6 +124,11 @@
     const dashboard = {
       gateway: "{{ websocket_url }}",
       websocket: null,
+      temperatureChart: null,
+      humidityChart: null,
+      temperatureData: [],
+      humidityData: [],
+      maxDataPoints: 20,
 
       initWebSocket: function() {
         console.log('Trying to open a WebSocket connection...');
@@ -122,6 +137,135 @@
         this.websocket.onopen = (event) => this.onOpen(event);
         this.websocket.onclose = (event) => this.onClose(event);
         this.websocket.onmessage = (event) => this.onMessage(event);
+      },
+
+      initCharts: function() {
+        // Temperature Chart
+        const tempCtx = document.getElementById('temperatureChart').getContext('2d');
+        this.temperatureChart = new Chart(tempCtx, {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [{
+              label: 'Temperature (°C)',
+              data: [],
+              borderColor: 'rgb(239, 68, 68)',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: false,
+                grid: {
+                  color: 'rgba(156, 163, 175, 0.2)'
+                },
+                ticks: {
+                  color: 'rgb(156, 163, 175)'
+                }
+              },
+              x: {
+                grid: {
+                  color: 'rgba(156, 163, 175, 0.2)'
+                },
+                ticks: {
+                  color: 'rgb(156, 163, 175)'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: 'rgb(156, 163, 175)'
+                }
+              }
+            }
+          }
+        });
+
+        // Humidity Chart
+        const humCtx = document.getElementById('humidityChart').getContext('2d');
+        this.humidityChart = new Chart(humCtx, {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [{
+              label: 'Humidity (%)',
+              data: [],
+              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                grid: {
+                  color: 'rgba(156, 163, 175, 0.2)'
+                },
+                ticks: {
+                  color: 'rgb(156, 163, 175)'
+                }
+              },
+              x: {
+                grid: {
+                  color: 'rgba(156, 163, 175, 0.2)'
+                },
+                ticks: {
+                  color: 'rgb(156, 163, 175)'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: 'rgb(156, 163, 175)'
+                }
+              }
+            }
+          }
+        });
+
+        // Load historical data
+        this.loadHistoricalData();
+      },
+
+      loadHistoricalData: function() {
+        fetch('/api/sensor-data')
+          .then(response => response.json())
+          .then(data => {
+            data.forEach(record => {
+              const time = new Date(record.timestamp).toLocaleTimeString();
+              if (record.sensor_type === 'temperature') {
+                this.addDataPoint(this.temperatureChart, time, record.value);
+              } else if (record.sensor_type === 'humidity') {
+                this.addDataPoint(this.humidityChart, time, record.value);
+              }
+            });
+          })
+          .catch(error => console.error('Error loading historical data:', error));
+      },
+
+      addDataPoint: function(chart, label, value) {
+        chart.data.labels.push(label);
+        chart.data.datasets[0].data.push(value);
+        
+        // Keep only last N data points
+        if (chart.data.labels.length > this.maxDataPoints) {
+          chart.data.labels.shift();
+          chart.data.datasets[0].data.shift();
+        }
+        
+        chart.update('none');
       },
 
       onOpen: function(event) {
@@ -138,25 +282,34 @@
       onMessage: function(event) {
         console.log('Received:', event.data);
         const data = event.data;
+        const timestamp = new Date().toLocaleTimeString();
         
         if (data.startsWith('humidity:')) {
-          document.getElementById('humidity').textContent = data.replace('humidity:', '') + " %";
+          const value = parseFloat(data.replace('humidity:', ''));
+          document.getElementById('humidity').textContent = value + " %";
+          this.addDataPoint(this.humidityChart, timestamp, value);
+          this.saveSensorData('humidity', value);
         } else if (data.startsWith('temp:')) {
-          document.getElementById('temperature').textContent = data.replace('temp:', '') + " °C";
+          const value = parseFloat(data.replace('temp:', ''));
+          document.getElementById('temperature').textContent = value + " °C";
+          this.addDataPoint(this.temperatureChart, timestamp, value);
+          this.saveSensorData('temperature', value);
         } else if (data.startsWith('pir:')) {
           document.getElementById('pir').textContent = data.replace('pir:', '') == '1' ? 'Motion Detected' : 'No Motion Detected';
         }
       },
 
-      updateConnectionStatus: function(isConnected) {
-        const statusElement = document.getElementById('connectionStatus');
-        if (isConnected) {
-          statusElement.className = 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-green-200 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-900 dark:text-green-200';
-          statusElement.textContent = 'Connected';
-        } else {
-          statusElement.className = 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-red-200 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900 dark:text-red-200';
-          statusElement.textContent = 'Disconnected';
-        }
+      saveSensorData: function(sensorType, value) {
+        fetch('/api/sensor-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sensor_type: sensorType,
+            value: value
+          })
+        }).catch(error => console.error('Error saving sensor data:', error));
       },
 
       sendCommand: function(command) {
@@ -172,19 +325,12 @@
     // Command sending function for backward compatibility
     function sendCommand(command) {
       dashboard.sendCommand(command);
-      
-      // Add visual feedback
-      if (event && event.target) {
-        event.target.classList.add('opacity-50');
-        setTimeout(() => {
-          event.target.classList.remove('opacity-50');
-        }, 200);
-      }
     }
 
     // Initialize dashboard on page load
     document.addEventListener('DOMContentLoaded', function() {
       dashboard.initWebSocket();
+      dashboard.initCharts();
     });
   </script>
   {% endblock %}

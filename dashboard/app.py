@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
-ESP32_WEBSOCKET_URL = "ws://192.168.1.28/ws"
+ESP32_WEBSOCKET_URL = "ws://192.168.1.16/ws"
 UPLOAD_FOLDER = './accessHistory'
 KNOWN_FACES_FOLDER = './employees'
 DATABASE_FILE = 'entreprise.db'
@@ -64,6 +64,14 @@ class SmartEnterpriseServer:
                     national_id TEXT NOT NULL UNIQUE,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     is_active BOOLEAN DEFAULT 1
+                )
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS sensor_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sensor_type TEXT NOT NULL,
+                    value REAL NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             conn.commit()
@@ -339,7 +347,58 @@ class SmartEnterpriseServer:
             """Serve employee images."""
             employee_dir = os.path.join(KNOWN_FACES_FOLDER, employee_name)
             return send_from_directory(employee_dir, filename)
-    
+        
+        @self.app.route('/api/sensor-data', methods=['GET'])
+        def api_get_sensor_data():
+            """Get recent sensor data for charts."""
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT sensor_type, value, timestamp 
+                    FROM sensor_data 
+                    WHERE timestamp > datetime('now', '-1 hour')
+                    ORDER BY timestamp DESC 
+                    LIMIT 40
+                ''')
+                data = cursor.fetchall()
+                conn.close()
+                
+                result = []
+                for row in data:
+                    result.append({
+                        "sensor_type": row[0],
+                        "value": row[1],
+                        "timestamp": row[2]
+                    })
+                
+                return jsonify(result)
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/sensor-data', methods=['POST'])
+        def api_save_sensor_data():
+            """Save sensor data."""
+            try:
+                data = request.get_json()
+                sensor_type = data.get('sensor_type')
+                value = data.get('value')
+                
+                if not sensor_type or value is None:
+                    return jsonify({"error": "sensor_type and value are required"}), 400
+                
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO sensor_data (sensor_type, value) VALUES (?, ?)
+                ''', (sensor_type, float(value)))
+                conn.commit()
+                conn.close()
+                
+                return jsonify({"message": "Sensor data saved successfully"}), 201
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
     def _handle_upload(self):
         """Handle file upload and face recognition."""
         try:
