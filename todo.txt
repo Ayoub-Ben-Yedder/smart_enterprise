@@ -1,4 +1,0 @@
-[DONE] Adding small charts for temperature and humidity updates (e.g., using Chart.js).
-Storing sensor data in a database for historical trends or analytics.
-[DONE] Adding a login page
-Storing on/off times lets you calculate power usage over intervals. You can then generate reports or graphs showing usage trends and overall energy consumption, helping optimize operations.

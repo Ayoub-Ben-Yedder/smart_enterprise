@@ -46,6 +46,7 @@ class SmartEnterpriseServer:
     
     def _connect_to_esp32(self):
         """Establish WebSocket connection to ESP32."""
+        self.websocket_client.set_database_manager(self.db_manager)
         self.websocket_client.connect()
     
     def _setup_api(self):
@@ -86,6 +87,11 @@ class SmartEnterpriseServer:
             except Exception as e:
                 logger.error(f"Error loading cameras: {e}")
                 return render_template('surveillance.html', cameras=[])
+
+        @self.app.route('/energy')
+        @self.auth_manager.login_required
+        def energy():
+            return render_template('energy.html', websocket_url=ESP32_WEBSOCKET_URL)
 
         @self.app.route('/accessHistory')
         @self.auth_manager.login_required

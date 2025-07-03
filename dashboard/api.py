@@ -217,6 +217,73 @@ class APIManager:
             except Exception as e:
                 logger.error(f"Error deleting employee: {e}")
                 return jsonify({"error": str(e)}), 500
+
+        @self.api_bp.route('/energy/usage', methods=['GET'])
+        @self.auth_manager.login_required
+        def api_get_energy_usage():
+            """Get energy usage statistics."""
+            try:
+                # Get current device status from database
+                lamp_status = self.db_manager.get_device_status('lamp')
+                outlet_status = self.db_manager.get_device_status('outlet')
+                
+                # Calculate usage time for energy calculations
+                lamp_today = self.db_manager.calculate_device_usage_time('lamp', 1)
+                lamp_week = self.db_manager.calculate_device_usage_time('lamp', 7)
+                outlet_today = self.db_manager.calculate_device_usage_time('outlet', 1)
+                outlet_week = self.db_manager.calculate_device_usage_time('outlet', 7)
+                
+                return jsonify({
+                    "lamp_status": lamp_status,
+                    "outlet_status": outlet_status,
+                    "lamp_today_minutes": lamp_today,
+                    "lamp_week_minutes": lamp_week,
+                    "outlet_today_minutes": outlet_today,
+                    "outlet_week_minutes": outlet_week
+                })
+            except Exception as e:
+                logger.error(f"Error getting energy usage: {e}")
+                return jsonify({"error": str(e)}), 500
+
+        @self.api_bp.route('/energy/event', methods=['POST'])
+        @self.auth_manager.login_required
+        def api_save_energy_event():
+            """Save energy event."""
+            try:
+                data = request.get_json()
+                device = data.get('device')
+                action = data.get('action')
+                
+                if not device or not action:
+                    return jsonify({"error": "Device and action are required"}), 400
+                
+                self.db_manager.save_energy_event(device, action)
+                self.db_manager.update_device_status(device, action)
+                return jsonify({"message": "Energy event saved"}), 200
+                
+            except Exception as e:
+                logger.error(f"Error saving energy event: {e}")
+                return jsonify({"error": str(e)}), 500
+
+        @self.api_bp.route('/energy/activity', methods=['GET'])
+        @self.auth_manager.login_required
+        def api_get_energy_activity():
+            """Get recent energy activity."""
+            try:
+                limit = request.args.get('limit', 20, type=int)
+                activities = self.db_manager.get_recent_energy_activity(limit)
+                
+                return jsonify([{
+                    "id": a[0],
+                    "device": a[1],
+                    "action": a[2],
+                    "timestamp": a[3],
+                    "duration": a[4] if len(a) > 4 else None
+                } for a in activities])
+            except Exception as e:
+                logger.error(f"Error getting energy activity: {e}")
+                return jsonify({"error": str(e)}), 500
+
     def get_blueprint(self):
         """Return the API blueprint."""
         return self.api_bp

@@ -281,8 +281,30 @@
         if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
           console.log(`Sending command: ${command}`);
           this.websocket.send(command);
+          
+          // Track device status locally and save to database
+          if (command === 'turn_on_lamp' || command === 'turn_off_lamp') {
+            const action = command === 'turn_on_lamp' ? 'on' : 'off';
+            console.log(`saveEnergyEvent: ${action}`);
+            this.saveEnergyEvent('lamp', action);
+          } else if (command === 'turn_on_pris' || command === 'turn_off_pris') {
+            const action = command === 'turn_on_pris' ? 'on' : 'off';
+            this.saveEnergyEvent('outlet', action);
+          }
         } else {
           console.log('WebSocket not connected');
+        }
+      },
+      
+      saveEnergyEvent: async function(device, action) {
+        try {
+          await fetch('/api/energy/event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ device, action })
+          });
+        } catch (error) {
+          console.error('Error saving energy event:', error);
         }
       }
     };
