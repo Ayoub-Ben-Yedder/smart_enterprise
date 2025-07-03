@@ -235,24 +235,6 @@
           }
         });
 
-        // Load historical data
-        this.loadHistoricalData();
-      },
-
-      loadHistoricalData: function() {
-        fetch('/api/sensor-data')
-          .then(response => response.json())
-          .then(data => {
-            data.forEach(record => {
-              const time = new Date(record.timestamp).toLocaleTimeString();
-              if (record.sensor_type === 'temperature') {
-                this.addDataPoint(this.temperatureChart, time, record.value);
-              } else if (record.sensor_type === 'humidity') {
-                this.addDataPoint(this.humidityChart, time, record.value);
-              }
-            });
-          })
-          .catch(error => console.error('Error loading historical data:', error));
       },
 
       addDataPoint: function(chart, label, value) {
@@ -270,12 +252,10 @@
 
       onOpen: function(event) {
         console.log('Connection opened');
-        this.updateConnectionStatus(true);
       },
 
       onClose: function(event) {
         console.log('Connection closed');
-        this.updateConnectionStatus(false);
         setTimeout(() => this.initWebSocket(), 2000);
       },
 
@@ -288,28 +268,13 @@
           const value = parseFloat(data.replace('humidity:', ''));
           document.getElementById('humidity').textContent = value + " %";
           this.addDataPoint(this.humidityChart, timestamp, value);
-          this.saveSensorData('humidity', value);
         } else if (data.startsWith('temp:')) {
           const value = parseFloat(data.replace('temp:', ''));
           document.getElementById('temperature').textContent = value + " °C";
           this.addDataPoint(this.temperatureChart, timestamp, value);
-          this.saveSensorData('temperature', value);
         } else if (data.startsWith('pir:')) {
           document.getElementById('pir').textContent = data.replace('pir:', '') == '1' ? 'Motion Detected' : 'No Motion Detected';
         }
-      },
-
-      saveSensorData: function(sensorType, value) {
-        fetch('/api/sensor-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            sensor_type: sensorType,
-            value: value
-          })
-        }).catch(error => console.error('Error saving sensor data:', error));
       },
 
       sendCommand: function(command) {
