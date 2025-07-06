@@ -5,6 +5,12 @@
 #define ENTREPRISE_SSID  "TOPNET_VSKC"
 #define ENTREPRISE_PASSWORD "a47qhmlwxy"
 
+// Static IP configuration
+#define STATIC_IP_ADDRESS IPAddress(192, 168, 1, 100)  // Choose an available IP in your network
+#define GATEWAY_IP        IPAddress(192, 168, 1, 1)    // Usually your router's IP
+#define SUBNET_MASK       IPAddress(255, 255, 255, 0)  // Common subnet mask
+#define DNS_SERVER        IPAddress(8, 8, 8, 8)        // Google DNS or your preferred DNS
+
 // Sensor pins
 #define DHT11_PIN 33
 #define PIR_PIN 32
