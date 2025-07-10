@@ -7,6 +7,7 @@ from auth import AuthManager
 from websocket_client import WebSocketClient
 from api import APIManager
 from config import UPLOAD_FOLDER, EMPLOYEES_FACES_FOLDER, DATABASE_FILE, ESP32_WEBSOCKET_URL
+import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -129,7 +130,9 @@ class SmartEnterpriseServer:
                 return jsonify({"error": "No file selected"}), 400
 
             # Save file
-            filename = os.path.basename(file.filename)
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            file_extension = os.path.splitext(file.filename)[1]
+            filename = f"{timestamp}{file_extension}"
             file_path = os.path.join(UPLOAD_FOLDER, filename)
             file.save(file_path)
             logger.info(f"File saved: {filename}")
